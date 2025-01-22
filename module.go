@@ -23,6 +23,8 @@ var (
 func init() {
 	caddy.RegisterModule(Middleware{})
 	httpcaddyfile.RegisterHandlerDirective("pow", parseCaddyfile)
+	// before handlers that typically respond to requests
+	httpcaddyfile.RegisterDirectiveOrder("pow", httpcaddyfile.Before, "abort")
 }
 
 // Gizmo is an example; put your own type here.
@@ -34,6 +36,8 @@ type Middleware struct {
 	CookieName string `json:"cookie_name,omitempty"`
 
 	server *Server
+
+	metrics Metrics
 }
 
 // CaddyModule returns the Caddy module information.
@@ -88,6 +92,8 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, handler 
 
 func (m *Middleware) Provision(ctx caddy.Context) error {
 	m._logger = ctx.Logger(m)
+	m.registerMetrics(ctx)
+
 	return nil
 }
 

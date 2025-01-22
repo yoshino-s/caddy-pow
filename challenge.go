@@ -38,37 +38,37 @@ func (v *Server) calculateChallenge(r *http.Request) string {
 func (v *Server) GetChallenge(r *http.Request) string {
 	result := v.calculateChallenge(r)
 
-	challengesIssued.Inc()
+	v.middleware.metrics.challengesIssued.Inc()
 
-	v.logger.Debug("challenge issued", zap.String("challenge", result), zap.Int("difficulty", v.difficulty))
+	v.logger.Debug("challenge issued", zap.String("challenge", result), zap.Int("difficulty", v.middleware.Difficulty))
 	return result
 }
 
 func (v *Server) ShouldChallenge(r *http.Request) (bool, error) {
 	switch {
 	case !strings.Contains(r.UserAgent(), "Mozilla"):
-		bypasses.Inc()
+		v.middleware.metrics.bypasses.Inc()
 		v.logger.Debug("non-browser user agent")
 		return false, nil
 	case strings.HasPrefix(r.URL.Path, "/.well-known/"):
-		bypasses.Inc()
+		v.middleware.metrics.bypasses.Inc()
 		v.logger.Debug("well-known path")
 		return false, nil
 	case strings.HasSuffix(r.URL.Path, ".rss") || strings.HasSuffix(r.URL.Path, ".xml") || strings.HasSuffix(r.URL.Path, ".atom"):
-		bypasses.Inc()
+		v.middleware.metrics.bypasses.Inc()
 		v.logger.Debug("rss path")
 		return false, nil
 	case r.URL.Path == "/favicon.ico":
-		bypasses.Inc()
+		v.middleware.metrics.bypasses.Inc()
 		v.logger.Debug("favicon path")
 		return false, nil
 	case r.URL.Path == "/robots.txt":
-		bypasses.Inc()
+		v.middleware.metrics.bypasses.Inc()
 		v.logger.Debug("robots.txt path")
 		return false, nil
 	}
 
-	cookie, err := r.Cookie(v.cookieName)
+	cookie, err := r.Cookie(v.middleware.CookieName)
 	if err != nil {
 		v.logger.Debug("cookie not found", zap.String("path", r.URL.Path))
 		return true, nil
@@ -104,7 +104,7 @@ func (v *Server) ShouldChallenge(r *http.Request) (bool, error) {
 		return true, nil
 	}
 
-	challenge := v.GetChallenge(r)
+	challenge := v.calculateChallenge(r)
 
 	if claims["challenge"] != challenge {
 		v.logger.Debug("challenge mismatch", zap.String("path", r.URL.Path))
@@ -126,7 +126,7 @@ func (v *Server) ShouldChallenge(r *http.Request) (bool, error) {
 
 	if subtle.ConstantTimeCompare([]byte(claims["response"].(string)), []byte(calculated)) != 1 {
 		v.logger.Debug("invalid response", zap.String("path", r.URL.Path))
-		failedValidations.Inc()
+		v.middleware.metrics.failedValidations.Inc()
 		return true, nil
 	}
 
@@ -160,11 +160,11 @@ func (v *Server) VerifyChallenge(r *http.Request) (string, int, error) {
 	}
 
 	zap.L().Info("challenge took", zap.Float64("elapsedTime", elapsedTime))
-	timeTaken.Observe(elapsedTime)
+	v.middleware.metrics.timeTaken.Observe(elapsedTime)
 
 	response := r.FormValue("response")
 
-	challenge := v.GetChallenge(r)
+	challenge := v.calculateChallenge(r)
 
 	nonce, err := strconv.Atoi(nonceStr)
 	if err != nil {
@@ -178,13 +178,13 @@ func (v *Server) VerifyChallenge(r *http.Request) (string, int, error) {
 	}
 
 	if subtle.ConstantTimeCompare([]byte(response), []byte(calculated)) != 1 {
-		failedValidations.Inc()
+		v.middleware.metrics.failedValidations.Inc()
 		return "", http.StatusForbidden, fmt.Errorf("invalid response")
 	}
 
 	// compare the leading zeroes
 	if !strings.HasPrefix(response, strings.Repeat("0", difficulty)) {
-		failedValidations.Inc()
+		v.middleware.metrics.failedValidations.Inc()
 		return "", http.StatusForbidden, fmt.Errorf("invalid response")
 	}
 
@@ -202,7 +202,7 @@ func (v *Server) VerifyChallenge(r *http.Request) (string, int, error) {
 		return "", http.StatusInternalServerError, fmt.Errorf("failed to sign token")
 	}
 
-	challengesValidated.Inc()
+	v.middleware.metrics.challengesValidated.Inc()
 
 	return tokenString, http.StatusOK, nil
 }

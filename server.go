@@ -17,7 +17,7 @@ var (
 
 func (m *Middleware) Server() *Server {
 	if m.server == nil {
-		m.server = NewServer(m.CookieName, m.Difficulty, m.logger())
+		m.server = NewServer(m)
 	}
 	return m.server
 }
@@ -25,26 +25,24 @@ func (m *Middleware) Server() *Server {
 type Server struct {
 	http.ServeMux
 
-	cookieName string
-	difficulty int
-	priv       ed25519.PrivateKey
-	pub        ed25519.PublicKey
+	priv ed25519.PrivateKey
+	pub  ed25519.PublicKey
 
-	logger *zap.Logger
+	middleware *Middleware
+	logger     *zap.Logger
 }
 
-func NewServer(cookieName string, difficulty int, logger *zap.Logger) *Server {
+func NewServer(middleware *Middleware) *Server {
 	pub, priv, _ := ed25519.GenerateKey(nil)
 
 	s := &Server{
 		ServeMux: *http.NewServeMux(),
 
-		cookieName: cookieName,
-		difficulty: difficulty,
-		priv:       priv,
-		pub:        pub,
+		priv: priv,
+		pub:  pub,
 
-		logger: logger,
+		middleware: middleware,
+		logger:     middleware.logger(),
 	}
 
 	s.Handle("/.within.website/x/cmd/anubis/", http.StripPrefix("/.within.website/x/cmd/anubis", http.FileServerFS(staticFs)))
@@ -69,7 +67,7 @@ func (s *Server) MakeChallenge(w http.ResponseWriter, r *http.Request) {
 		Difficulty int    `json:"difficulty"`
 	}{
 		Challenge:  challenge,
-		Difficulty: s.difficulty,
+		Difficulty: s.middleware.Difficulty,
 	})
 }
 
@@ -82,7 +80,7 @@ func (s *Server) PassChallenge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     s.cookieName,
+		Name:     s.middleware.CookieName,
 		Value:    token,
 		Expires:  time.Now().Add(24 * 7 * time.Hour),
 		SameSite: http.SameSiteDefaultMode,
@@ -95,7 +93,7 @@ func (s *Server) PassChallenge(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) clearCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
-		Name:    s.cookieName,
+		Name:    s.middleware.CookieName,
 		Value:   "",
 		Expires: time.Now().Add(-1 * time.Hour),
 		MaxAge:  -1,
