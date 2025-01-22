@@ -1,4 +1,4 @@
-# Caddy Waf
+# Caddy Pow
 
 > Inspired by https://github.com/Xe/x/blob/master/cmd/anubis/
 
@@ -7,7 +7,7 @@ A pow(Proof of Work) based Web Application Firewall(WAF) for Caddy server.
 ## Installation
 
 ```bash
-xcaddy build --with github.com/yoshino-x/caddy-waf
+xcaddy build --with github.com/yoshino-s/caddy-pow
 ```
 
 ## Usage

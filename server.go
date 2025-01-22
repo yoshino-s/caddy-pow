@@ -11,6 +11,8 @@ import (
 	"within.website/x/xess"
 )
 
+//go:generate go run github.com/a-h/templ/cmd/templ@latest generate
+
 var (
 	_ http.Handler = (*Server)(nil)
 )

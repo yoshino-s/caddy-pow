@@ -81,7 +81,7 @@ func base(title string, body templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<footer><center><p>Protected by <a href=\"https://xeiaso.net/blog/2025/anubis\">Anubis</a> from <a href=\"https://within.website\">Within</a>.</p></center></footer></main></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<footer><center><p>Protected by <a href=\"https://xeiaso.net/blog/2025/anubis\">Anubis</a> from <a href=\"https://within.website\">Within</a> and <a href=\"https://github.com/yoshino-s/caddy-pow\">Caddy Pow</a> from <a href=\"https://github.com/yoshino-s\">yoshino-s</a> .</p></center></footer></main></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
