@@ -4,6 +4,10 @@
 
 A pow(Proof of Work) based Web Application Firewall(WAF) for Caddy server.
 
+More description can be found at https://xeiaso.net/blog/2025/anubis/ . This is a port from the anubis single binary to caddy plugin.
+
+Example: https://httpbin.yoshino-s.xyz/
+
 ## Installation
 
 ```bash
